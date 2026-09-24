@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>调拨台</h1>
+{% if error %}<p class="fail">{{ error }}</p>{% endif %}
+
+<section>
+  <h2>台名册</h2>
+  {% if can_write %}
+  <form method="post" action="{{ url_for('register_table') }}">
+    <input name="name" placeholder="新台名（全册唯一）" required />
+    <button>登记入册</button>
+  </form>
+  {% endif %}
+  <table>
+    <thead><tr><th>台名</th><th>登记人</th><th>登记时刻</th></tr></thead>
+    <tbody>
+      {% for t in tables %}
+      <tr>
+        <td><a href="{{ url_for('home', table=t.name) }}">{{ t.name }}</a></td>
+        <td>{{ t.created_by }}</td>
+        <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3">名册为空，请先登记审评台。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>发起调拨</h2>
+  {% if can_write %}
+  <form method="post" action="{{ url_for('create_transfer') }}">
+    <select name="source" required>
+      <option value="" disabled selected>源台</option>
+      {% for t in tables %}<option value="{{ t.name }}">{{ t.name }}</option>{% endfor %}
+    </select>
+    <select name="target" required>
+      <option value="" disabled selected>目标台</option>
+      {% for t in tables %}<option value="{{ t.name }}">{{ t.name }}</option>{% endfor %}
+    </select>
+    <input name="lot" list="lots" placeholder="批次" required />
+    <datalist id="lots">
+      {% for lot in lots %}<option value="{{ lot }}">{% endfor %}
+    </datalist>
+    <button>提交调拨单</button>
+  </form>
+  {% else %}
+  <p>观察员可查看台名册与履历，不能登台，也不能建调拨单。</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>调拨履历</h2>
+  <table>
+    <thead><tr><th>批次</th><th>源台</th><th>目标台</th><th>调拨人</th><th>时刻</th></tr></thead>
+    <tbody>
+      {% for r in history %}
+      <tr>
+        <td>{{ r.lot }}</td>
+        <td>{{ r.source_table }}</td>
+        <td>{{ r.target_table }}</td>
+        <td>{{ r.moved_by }}</td>
+        <td>{{ r.moved_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">暂无调拨记录。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

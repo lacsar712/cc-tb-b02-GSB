@@ -33,6 +33,37 @@ def main():
             created_by text NOT NULL
         )"""
     )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS cupping_tables (
+            id serial PRIMARY KEY,
+            name text NOT NULL UNIQUE,
+            created_by text NOT NULL,
+            created_at timestamptz NOT NULL DEFAULT now()
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS transfers (
+            id serial PRIMARY KEY,
+            lot text NOT NULL,
+            source_table text NOT NULL REFERENCES cupping_tables (name),
+            target_table text NOT NULL REFERENCES cupping_tables (name),
+            moved_by text NOT NULL,
+            moved_at timestamptz NOT NULL DEFAULT now()
+        )"""
+    )
+    cur.execute(
+        """CREATE OR REPLACE FUNCTION transfers_immutable() RETURNS trigger AS $$
+        BEGIN
+            RAISE EXCEPTION '调拨履历不可删改';
+        END;
+        $$ LANGUAGE plpgsql"""
+    )
+    cur.execute("DROP TRIGGER IF EXISTS transfers_no_change ON transfers")
+    cur.execute(
+        """CREATE TRIGGER transfers_no_change
+           BEFORE UPDATE OR DELETE ON transfers
+           FOR EACH ROW EXECUTE FUNCTION transfers_immutable()"""
+    )
     cur.execute("SELECT COUNT(*) FROM cuppings")
     if cur.fetchone()[0] == 0:
         for lot, aroma, taste, liquor in (("春茶-A", 8, 8, 7), ("夏茶-C", 5, 4, 6)):
