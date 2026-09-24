@@ -1,7 +1,16 @@
 {% extends "base.html" %}
 {% block body %}
+<nav class="station-bar">
+  <strong>按审评台过滤（服务端）：</strong>
+  <a href="{{ url_for('home') }}" class="{% if not active_station %}on{% endif %}">全部</a>
+  {% for s in stations %}
+    <a href="{{ url_for('home', station=s) }}" class="{% if active_station == s %}on{% endif %}">{{ s }}</a>
+  {% endfor %}
+  {% if active_station %}<span class="cur">当前视图：{{ active_station }}</span>{% endif %}
+</nav>
+
 {% if can_write %}
-<form method="post" action="{{ url_for('create') }}" data-swap="1">
+<form method="post" action="{{ url_for('create') }}" data-swap="#rows">
   <h2>新开一轮审评</h2>
   <input name="lot" placeholder="批次" required />
   <input name="aroma" type="number" step="0.1" min="0" max="10" placeholder="香气" required />
@@ -16,4 +25,5 @@
     {% for row in rows %}{% include "_row.html" %}{% endfor %}
   </tbody>
 </table>
+{% if active_station and not rows %}<p class="empty">该台名下暂无归属批次（最新行已在服务端过滤掉）。</p>{% endif %}
 {% endblock %}

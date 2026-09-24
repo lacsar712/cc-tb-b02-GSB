@@ -33,6 +33,45 @@ def main():
             created_by text NOT NULL
         )"""
     )
+
+    # 审评台名册：台名唯一
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS stations (
+            name text PRIMARY KEY,
+            created_by text NOT NULL,
+            created_at timestamptz NOT NULL DEFAULT now()
+        )"""
+    )
+
+    # 调拨履历：只写不改
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS transfers (
+            id serial PRIMARY KEY,
+            source_station text NOT NULL REFERENCES stations(name),
+            target_station text NOT NULL REFERENCES stations(name),
+            lot text NOT NULL,
+            moved_by text NOT NULL,
+            moved_at timestamptz NOT NULL DEFAULT now()
+        )"""
+    )
+    cur.execute(
+        """CREATE OR REPLACE FUNCTION transfers_block_mutation() RETURNS trigger AS $$
+        BEGIN
+            RAISE EXCEPTION '调拨履历不可删改';
+        END;
+        $$ LANGUAGE plpgsql"""
+    )
+    cur.execute("DROP TRIGGER IF EXISTS transfers_no_update ON transfers")
+    cur.execute(
+        """CREATE TRIGGER transfers_no_update BEFORE UPDATE ON transfers
+           FOR EACH ROW EXECUTE FUNCTION transfers_block_mutation()"""
+    )
+    cur.execute("DROP TRIGGER IF EXISTS transfers_no_delete ON transfers")
+    cur.execute(
+        """CREATE TRIGGER transfers_no_delete BEFORE DELETE ON transfers
+           FOR EACH ROW EXECUTE FUNCTION transfers_block_mutation()"""
+    )
+
     cur.execute("SELECT COUNT(*) FROM cuppings")
     if cur.fetchone()[0] == 0:
         for lot, aroma, taste, liquor in (("春茶-A", 8, 8, 7), ("夏茶-C", 5, 4, 6)):

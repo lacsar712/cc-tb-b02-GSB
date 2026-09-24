@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block body %}
+<section>
+  <h2>台名册</h2>
+  <p class="hint">台名唯一；只有已入册的台能进调拨单。观察员可查看，不能登台。</p>
+  <table>
+    <thead><tr><th>台名</th><th>登记人</th><th>登记时刻</th></tr></thead>
+    <tbody id="station-rows">
+      {% for row in stations %}{% include "_station_row.html" %}{% endfor %}
+    </tbody>
+  </table>
+  {% if can_write %}
+  <form method="post" action="{{ url_for('register_station') }}" data-swap="#station-rows">
+    <input name="name" placeholder="新台名（唯一）" required />
+    <button>登记入册</button>
+  </form>
+  {% else %}
+  <p class="readonly">观察员只读：不能登台。</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>发起调拨</h2>
+  {% if can_write %}
+  {% if stations|length >= 2 %}
+  <form method="post" action="{{ url_for('create_transfer') }}" data-swap="#transfer-rows">
+    <label>源台
+      <select name="source_station" required>
+        {% for row in stations %}<option value="{{ row.name }}">{{ row.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>目标台
+      <select name="target_station" required>
+        {% for row in stations %}<option value="{{ row.name }}">{{ row.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>批次
+      <input name="lot" list="lot-list" placeholder="批次" required />
+      <datalist id="lot-list">
+        {% for lot in lots %}<option value="{{ lot }}"></option>{% endfor %}
+      </datalist>
+    </label>
+    <button>提交调拨单</button>
+  </form>
+  {% else %}
+  <p class="hint">至少先在名册登记两台，才能在台之间调拨。</p>
+  {% endif %}
+  {% else %}
+  <p class="readonly">观察员只读：不能建调拨单。</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>调拨履历</h2>
+  <p class="hint">调拨成功后写入，服务端触发器禁止 UPDATE / DELETE，不可删改。</p>
+  <table>
+    <thead><tr><th>时刻</th><th>批次</th><th>源台</th><th>目标台</th><th>调拨人</th></tr></thead>
+    <tbody id="transfer-rows">
+      {% for row in transfers %}{% include "_transfer_row.html" %}{% endfor %}
+    </tbody>
+  </table>
+  {% if not transfers %}<p class="empty">暂无调拨记录。</p>{% endif %}
+</section>
+{% endblock %}
